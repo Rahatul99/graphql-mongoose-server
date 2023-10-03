@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "./config.js";
+// import { JWT_SECRET } from "./config.js";
 
 const User = mongoose.model("User");
 const Quote = mongoose.model("Quote");
@@ -14,6 +14,10 @@ const resolvers = {
     user: async (_, { _id }) => await User.findOne({ _id }),
     quotes: async () => await Quote.find({}).populate("by", "_id firstName"),
     iquote: async (_, { by }) => await Quote.find({ by }),
+    myprofile: async (_, args, { userId }) => {
+      if (!userId) throw new Error("You must be logged in");
+      return await User.findOne({ _id: userId });
+    },
   },
   User: {
     quotes: async (ur) => await Quote.find({ by: ur._id }),
@@ -41,7 +45,7 @@ const resolvers = {
       if (!doMatch) {
         throw new Error("email or password in invalid");
       }
-      const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
       return { token };
     },
     createQuote: async (_, { name }, { userId }) => {
